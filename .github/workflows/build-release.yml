@@ -1,0 +1,174 @@
+name: 构建和发布多平台可执行程序
+
+on:
+  push:
+    tags:
+      - 'v*'  # 当推送tag时触发，例如v1.0.0
+  workflow_dispatch:  # 允许手动触发
+    inputs:
+      version:
+        description: '发布版本号'
+        required: true
+        default: 'v0.2.0'
+
+env:
+  PYTHON_VERSION: '3.11'
+
+jobs:
+  build:
+    name: 构建 ${{ matrix.os }} 版本
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: ubuntu-latest
+            platform: linux
+            executable: meeting_extractor_linux
+          - os: windows-latest
+            platform: windows
+            executable: meeting_extractor_windows.exe
+          - os: macos-latest
+            platform: macos
+            executable: meeting_extractor_macos
+
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 设置Python环境
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: 安装uv包管理器
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+      shell: bash
+
+    - name: 添加uv到PATH (Windows)
+      if: matrix.os == 'windows-latest'
+      run: echo "$env:USERPROFILE\\.cargo\\bin" >> $env:GITHUB_PATH
+
+    - name: 添加uv到PATH (Unix)
+      if: matrix.os != 'windows-latest'
+      run: echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: 安装项目依赖
+      run: |
+        uv sync --dev
+      shell: bash
+
+    - name: 运行构建脚本
+      run: |
+        uv run python build.py --clean
+      shell: bash
+
+    - name: 验证构建产物
+      run: |
+        ls -la dist/
+      shell: bash
+
+    - name: 上传构建产物
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ matrix.executable }}
+        path: dist/${{ matrix.executable }}*
+        retention-days: 30
+
+  release:
+    name: 创建发布版本
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
+    
+    steps:
+    - name: 检出代码
+      uses: actions/checkout@v4
+
+    - name: 获取版本号
+      id: get_version
+      run: |
+        if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+          echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          echo "tag_name=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+        else
+          echo "version=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          echo "tag_name=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+        fi
+
+    - name: 下载所有构建产物
+      uses: actions/download-artifact@v4
+      with:
+        path: ./artifacts
+
+    - name: 准备发布文件
+      run: |
+        mkdir -p release
+        find ./artifacts -name "meeting_extractor_*" -type f -exec cp {} ./release/ \;
+        ls -la release/
+
+    - name: 生成更新日志
+      id: changelog
+      run: |
+        echo "CHANGELOG<<EOF" >> $GITHUB_OUTPUT
+        echo "## 🎉 会议侠 ${{ steps.get_version.outputs.version }} 发布" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "### 📦 可执行文件下载" >> $GITHUB_OUTPUT
+        echo "- **Windows**: meeting_extractor_windows.exe" >> $GITHUB_OUTPUT
+        echo "- **macOS**: meeting_extractor_macos" >> $GITHUB_OUTPUT
+        echo "- **Linux**: meeting_extractor_linux" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "### 🚀 使用方法" >> $GITHUB_OUTPUT
+        echo "1. 下载对应平台的可执行文件" >> $GITHUB_OUTPUT
+        echo "2. 创建 \`.env\` 文件，配置 \`ARK_API_KEY\`" >> $GITHUB_OUTPUT
+        echo "3. 准备会议记录文本文件" >> $GITHUB_OUTPUT
+        echo "4. 运行程序：\`./meeting_extractor_[平台] 会议记录.txt\`" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "### 📋 功能特性" >> $GITHUB_OUTPUT
+        echo "- ✅ AI智能提取会议任务" >> $GITHUB_OUTPUT
+        echo "- ✅ 生成Excel格式任务清单" >> $GITHUB_OUTPUT
+        echo "- ✅ 支持信息和行动项分类" >> $GITHUB_OUTPUT
+        echo "- ✅ 跨平台支持 (Windows/macOS/Linux)" >> $GITHUB_OUTPUT
+        echo "" >> $GITHUB_OUTPUT
+        echo "### 🔧 技术信息" >> $GITHUB_OUTPUT
+        echo "- Python版本: ${{ env.PYTHON_VERSION }}" >> $GITHUB_OUTPUT
+        echo "- 构建时间: $(date -u '+%Y-%m-%d %H:%M:%S UTC')" >> $GITHUB_OUTPUT
+        echo "- 提交哈希: ${{ github.sha }}" >> $GITHUB_OUTPUT
+        echo "EOF" >> $GITHUB_OUTPUT
+
+    - name: 创建GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: ${{ steps.get_version.outputs.tag_name }}
+        name: 会议侠 ${{ steps.get_version.outputs.version }}
+        body: ${{ steps.changelog.outputs.CHANGELOG }}
+        files: |
+          release/*
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    name: 构建通知
+    needs: [build, release]
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+    - name: 构建成功通知
+      if: needs.build.result == 'success' && needs.release.result == 'success'
+      run: |
+        echo "🎉 多平台构建和发布成功完成！"
+        echo "✅ Windows版本构建完成"
+        echo "✅ macOS版本构建完成"  
+        echo "✅ Linux版本构建完成"
+        echo "✅ GitHub Release创建成功"
+
+    - name: 构建失败通知
+      if: needs.build.result == 'failure' || needs.release.result == 'failure'
+      run: |
+        echo "❌ 构建或发布过程中出现错误"
+        echo "Build状态: ${{ needs.build.result }}"
+        echo "Release状态: ${{ needs.release.result }}"
+        exit 1 
