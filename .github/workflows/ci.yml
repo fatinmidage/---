@@ -79,7 +79,23 @@ jobs:
 
     - name: 安装项目依赖
       run: |
-        uv sync --dev
+        # Windows平台特殊处理volcengine-python-sdk构建问题
+        if [ "${{ matrix.os }}" = "windows-latest" ]; then
+          echo "🔧 Windows平台：处理volcengine-python-sdk构建问题"
+          uv cache clean || true
+          rm -f uv.lock || true
+          # 设置构建环境变量
+          export SETUPTOOLS_USE_DISTUTILS=stdlib
+          export DISTUTILS_USE_SDK=1
+          # 尝试安装，如果失败则使用备用方案
+          uv sync --dev || (
+            echo "⚠️ 标准安装失败，尝试使用pip安装volcengine-python-sdk"
+            pip install "volcengine-python-sdk[ark]==3.0.155" --force-reinstall
+            uv sync --dev --no-build-isolation
+          )
+        else
+          uv sync --dev
+        fi
       shell: bash
 
     - name: 测试构建脚本

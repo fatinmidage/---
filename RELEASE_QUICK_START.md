@@ -40,6 +40,7 @@ git push origin v1.0.0
 ## 🎯 构建结果
 
 成功后会生成：
+
 - ✅ **Windows**: `meeting_extractor_windows.exe`
 - ✅ **macOS**: `meeting_extractor_macos`
 - ✅ **Linux**: `meeting_extractor_linux`
@@ -47,10 +48,12 @@ git push origin v1.0.0
 ## 📋 自动化功能
 
 ### 持续集成 (CI)
+
 - 每次推送到 `main`/`develop` 分支时自动运行
 - 代码格式检查、质量检查、多平台构建测试
 
 ### 构建发布 (Release)
+
 - 推送标签或手动触发时运行
 - 多平台构建、创建GitHub Release、上传可执行文件
 
@@ -66,9 +69,10 @@ uv run python build.py
 git push origin main
 ```
 
-## 🎉 现在就试试吧！
+## 🎉 现在就试试吧
 
 1. **立即测试**: 推送一个标签试试
+
    ```bash
    git tag v0.2.1
    git push origin v0.2.1
@@ -86,4 +90,4 @@ git push origin main
 
 ---
 
-**恭喜！您的项目现在具备了专业级的自动化构建和发布能力！** 🎊 
+**恭喜！您的项目现在具备了专业级的自动化构建和发布能力！** 🎊

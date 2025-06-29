@@ -163,9 +163,50 @@ GitHub Release会包含：
    - 检查PyInstaller相关配置
 
 3. **检查平台特定问题**
-   - Windows: 路径分隔符、可执行文件扩展名
-   - macOS: 权限问题、签名问题
-   - Linux: 动态库依赖
+   - **Windows**: 路径分隔符、可执行文件扩展名、包构建问题
+   - **macOS**: 权限问题、签名问题
+   - **Linux**: 动态库依赖
+
+#### Windows平台特殊问题
+
+如果遇到`volcengine-python-sdk`构建失败的错误：
+
+**错误症状**:
+```
+x Failed to build `volcengine-python-sdk==4.0.2`
+系统找不到指定的文件。 (os error 2)
+```
+
+**解决方案**:
+
+1. **使用自动化脚本** (推荐)
+   ```bash
+   # 双击运行
+   install-windows.bat
+   
+   # 或者PowerShell中运行
+   .\scripts\install-windows.ps1
+   ```
+
+2. **手动解决**
+   ```bash
+   # 清理缓存
+   uv cache clean
+   
+   # 删除锁定文件
+   rm uv.lock
+   
+   # 重新安装
+   uv sync --dev
+   ```
+
+3. **使用固定版本**
+   - 项目已经固定`volcengine-python-sdk`版本为`3.0.155`
+   - 如果仍有问题，可尝试手动安装：
+   ```bash
+   pip install "volcengine-python-sdk[ark]==3.0.155" --force-reinstall
+   uv sync --dev --no-build-isolation
+   ```
 
 ### 发布失败
 
