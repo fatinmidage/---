@@ -73,12 +73,16 @@ meeting-extractor = "meeting_extractor:main"
 
 [tool.uv]
 dev-dependencies = [
-    "pyinstaller>=6.0.0",
     "pytest>=7.0.0",
     "pytest-cov>=4.0.0",
     "black>=23.0.0",
     "isort>=5.0.0",
     "flake8>=6.0.0",
+]
+
+[tool.uv.groups]
+build = [
+    "pyinstaller>=6.0.0",
 ]
 
 [tool.black]

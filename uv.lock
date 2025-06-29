@@ -421,7 +421,6 @@ dev = [
     { name = "black" },
     { name = "flake8" },
     { name = "isort" },
-    { name = "pyinstaller" },
     { name = "pytest" },
     { name = "pytest-cov" },
 ]
@@ -447,7 +446,6 @@ dev = [
     { name = "black", specifier = ">=23.0.0" },
     { name = "flake8", specifier = ">=6.0.0" },
     { name = "isort", specifier = ">=5.0.0" },
-    { name = "pyinstaller", specifier = ">=6.0.0" },
     { name = "pytest", specifier = ">=7.0.0" },
     { name = "pytest-cov", specifier = ">=4.0.0" },
 ]
