@@ -417,6 +417,9 @@ dev = [
 ]
 
 [package.dev-dependencies]
+build = [
+    { name = "pyinstaller" },
+]
 dev = [
     { name = "black" },
     { name = "flake8" },
@@ -442,6 +445,7 @@ requires-dist = [
 provides-extras = ["dev", "build"]
 
 [package.metadata.requires-dev]
+build = [{ name = "pyinstaller", specifier = ">=6.0.0" }]
 dev = [
     { name = "black", specifier = ">=23.0.0" },
     { name = "flake8", specifier = ">=6.0.0" },

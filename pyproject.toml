@@ -80,7 +80,7 @@ dev-dependencies = [
     "flake8>=6.0.0",
 ]
 
-[tool.uv.groups]
+[dependency-groups]
 build = [
     "pyinstaller>=6.0.0",
 ]
